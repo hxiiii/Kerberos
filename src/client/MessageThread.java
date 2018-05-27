@@ -1,5 +1,6 @@
 package client;
 
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -12,6 +13,8 @@ import java.util.Arrays;
 
 import javax.swing.DefaultListModel;
 import javax.swing.JList;
+
+import des.DES;
 
 
 public class MessageThread extends Thread {
@@ -72,8 +75,8 @@ public class MessageThread extends Thread {
 			}else if(cmd==0x23){
 				//接收群发消息
 				data=Arrays.copyOfRange(buffer, 2, len);
-				String message=new String(data);
-				System.out.println("群發消息");
+				String message=new String(DES.decrypt(data, ClientDemo.getPasswd()));
+				System.out.println("群發消息"+message);
 				StringBuffer bf=ClientDemo.getMap().get("All Online Users");
 				bf.append(message);
 				ArrayList<p2pThread> p2pthreads=ClientDemo.getp2pThreads();
@@ -85,7 +88,7 @@ public class MessageThread extends Thread {
 			}else if(cmd==0x24){
 				//群发文件
 				data=Arrays.copyOfRange(buffer, 2, len);
-				System.out.println(new String(data));
+				System.out.println(new String(DES.decrypt(data, ClientDemo.getPasswd())));
 			//	receiveFile();
 				///
 				new receiveFileThread().start();
@@ -94,7 +97,7 @@ public class MessageThread extends Thread {
 			}else if(cmd==0x25){
 				//p2p连接
 				data=Arrays.copyOfRange(buffer, 2, len);
-				System.out.println("p2p连接,新线程开启"+new String(data));
+				System.out.println("p2p连接,新线程开启"+new String(DES.decrypt(data, ClientDemo.getPasswd())));
 				new Thread(new p2pMessageThread(data)).start();
 				//新线程
 			}	
@@ -103,7 +106,8 @@ public class MessageThread extends Thread {
 	
 	class receiveFileThread extends Thread{
 		public void run(){
-			String[] message = new String(data).split(" ");
+			String[] message = new String(DES.decrypt(data, ClientDemo.getPasswd())).trim().split("#");
+			String key=message[4];
 			File file = new File(path + message[2]);
 			FileOutputStream fos = null;
 			try {
@@ -113,7 +117,7 @@ public class MessageThread extends Thread {
 				e1.printStackTrace();
 			}
 			int length = Integer.parseInt(message[3]);
-			String m=message[0]+" "+message[1]+"\n"+"发送文件:"+message[2]+"	大小为:"+length+"bytes\n";
+			String m=message[0]+"	"+message[1]+"\n"+"发送文件:"+message[2]+"	大小为:"+length+"bytes\n";
 			StringBuffer bf=ClientDemo.getMap().get("All Online Users");
 			bf.append(m);
 			ArrayList<p2pThread> p2pthreads=ClientDemo.getp2pThreads();
@@ -126,18 +130,40 @@ public class MessageThread extends Thread {
 				Socket socket=null;
 				try {
 					System.out.println("socket");
-					socket = new Socket(message[5],Integer.parseInt(message[4]));
+					socket = new Socket(message[6],Integer.parseInt(message[5]));
 					DataInputStream input=new DataInputStream(socket.getInputStream());
 					int count=0;
 					byte[] buffer=new byte[1024];
 					System.out.println("socket");
 					int readsize=0;
+					byte[] content;
+					ByteArrayOutputStream out = new ByteArrayOutputStream();
 					while(count<length){
 						try {
 							readsize = input.read(buffer);
 							count+=readsize;
 							System.out.println(readsize+"總長:"+count);
-							fos.write(buffer, 0, readsize);
+							out.write(buffer,0,readsize);
+							System.out.println(out.size());
+							if(out.size()==1024){
+								content=DES.decrypt(out.toByteArray(), key);
+								out.reset();
+							}
+							else {
+								content=DES.decrypt(out.toByteArray(), key);
+								if(count>length){
+									content=Arrays.copyOfRange(content, 0, out.size()-(count-length));
+								}	
+							}
+							/*content=Arrays.copyOfRange(buffer, 0, readsize);
+							if(count-length>0){
+								content=Arrays.copyOfRange(buffer, 0, readsize-(count-length));
+							}
+							else{
+								content=DES.decrypt(content, key);
+							}
+							System.out.println(new String(content));(*/
+							fos.write(content, 0, content.length);
 							fos.flush();
 						} catch (IOException e) {
 							// TODO Auto-generated catch block

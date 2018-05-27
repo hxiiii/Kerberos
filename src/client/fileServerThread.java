@@ -9,27 +9,33 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Arrays;
+
+import des.DES;
 
 public class fileServerThread extends Thread{
 		ServerSocket serverSocket;
 		Socket socket=null;
+		Boolean done=false;
 		File file;
+		String key;
 		//long length;
 		ArrayList<fileRunnable> filethreads=new ArrayList<fileRunnable>();
-		public fileServerThread(ServerSocket serverSocket, File file) {
+		public fileServerThread(ServerSocket serverSocket, File file, String key) {
 			this.serverSocket=serverSocket;
 			this.file=file;
+			this.key=key;
 		//	this.length=file.length();
 		}
 
 	//如果socket不同则启用新线程，否则端口占用
 		public void run(){
 			int i=0;
-			while(true){
+			while(!done){
 				try {
-					if(i==ClientDemo.getMap().size()-1)break;
+				//	if(i==ClientDemo.getMap().size()-1)break;
 					socket=serverSocket.accept();
-					System.out.println("客户端已连接"+ClientDemo.getMap().size());
+					System.out.println("客户端已连接"+i);
 					fileRunnable fileThread=new fileRunnable(socket,++i);
 					new Thread(fileThread).start();
 					filethreads.add(fileThread);
@@ -69,8 +75,6 @@ public class fileServerThread extends Thread{
 			public void run() {
 				System.out.println(num);
 				if(num<ClientDemo.getMap().size()-1)return;
-				// TODO Auto-generated method stub
-			//	int count=0;
 				FileInputStream fis = null;
 				try {
 					fis=new FileInputStream(file);
@@ -82,6 +86,7 @@ public class fileServerThread extends Thread{
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
+				byte[] content;
 				int readsize=0;
 					while(true){
 						try {
@@ -91,7 +96,10 @@ public class fileServerThread extends Thread{
 						for (int i = 0; i < filethreads.size(); i++) {
 							
 								try {
-									filethreads.get(i).getOutputStream().write(buffer, 0, readsize);
+									//content=Arrays.copyOfRange(buffer, 0, readsize);
+									content=DES.encrypt(Arrays.copyOfRange(buffer, 0, readsize), key);
+									filethreads.get(i).getOutputStream().write(content, 0,content.length);
+									//System.out.println(new String(DES.encrypt(content, key)));
 									filethreads.get(i).getOutputStream().flush();
 								} catch (IOException e) {
 									// TODO Auto-generated catch block
@@ -116,10 +124,7 @@ public class fileServerThread extends Thread{
 							// TODO Auto-generated catch block
 							e.printStackTrace();
 						}
-					
-				 
-		
-			
+				 done=true;
 			}
 		
 			/*	while(true){

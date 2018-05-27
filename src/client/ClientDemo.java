@@ -25,6 +25,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 
+import des.DES;
 import messageTran.MessageTran;
 
 public class ClientDemo extends JFrame {//socket
@@ -37,7 +38,8 @@ public class ClientDemo extends JFrame {//socket
 	Socket socket=null;
 	DataInputStream input=null;
 	DataOutputStream output=null;
-	static  String user="hxii";
+	static String user="hxii";
+	static String passwd="123456";
 	static ArrayList<p2pThread> p2pthreads=new ArrayList<p2pThread>();
 	static HashMap<String,StringBuffer> map=new HashMap<String,StringBuffer>();
 	static boolean isConnected=false;
@@ -129,7 +131,8 @@ public class ClientDemo extends JFrame {//socket
 		byte cmd=0x07;
 		int len;
 		byte[] buffer=new byte[1024];
-		MessageTran message=new MessageTran(cmd,user.getBytes());
+		//MessageTran message=new MessageTran(cmd,user.getBytes());
+		MessageTran message=new MessageTran(cmd,DES.encrypt(user, passwd));
 		try {
 			output.write(message.getDataTran());
 			output.flush();
@@ -192,5 +195,10 @@ public class ClientDemo extends JFrame {//socket
 
 	public static void main(String[] args) {
 		new ClientDemo();
+	}
+
+	public static String getPasswd() {
+		// TODO Auto-generated method stub
+		return passwd;
 	}
 }

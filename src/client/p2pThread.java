@@ -21,6 +21,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
+import des.DES;
 import messageTran.MessageTran;
 
 public class p2pThread extends JFrame implements Runnable{
@@ -169,8 +170,9 @@ public class p2pThread extends JFrame implements Runnable{
 			System.out.println("ip:"+ip);
 			//socket.getInetAddress().getHostAddress()
 			String message=user_sendfor+" "+socket.getLocalPort();
-			byte[] data=message.getBytes();
-			MessageTran mes=new MessageTran(cmd,data);
+		//	byte[] data=message.getBytes();
+		//	MessageTran mes=new MessageTran(cmd,data);
+			MessageTran mes=new MessageTran(cmd,DES.encrypt(message,ClientDemo.getPasswd()));
 			try {
 				output.write(mes.getDataTran());
 				output.flush();

@@ -14,6 +14,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import des.DES;
 import messageTran.MessageTran;
 
 public class p2pMessageThread implements Runnable {
@@ -31,7 +32,7 @@ public class p2pMessageThread implements Runnable {
 	public p2pMessageThread(){}
 	public p2pMessageThread(byte[] data){
 		this.data=data;
-		String[] message=new String(data).split(" ");
+		String[] message=new String(DES.decrypt(data, ClientDemo.getPasswd())).trim().split(" ");
 		user_sendfrom=message[0];
 		try {
 			this.address=InetAddress.getByName(message[1]);

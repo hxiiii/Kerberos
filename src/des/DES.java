@@ -196,15 +196,15 @@ public class DES {
 		for (int i = 0; i < K.length(); i++) {
 			String str = K.substring(i, i + 1);
 			int ss = Integer.parseInt(str, 16);
-			System.out.println(ss);
+		//	System.out.println(ss);
 			String binary = "0000" + Integer.toBinaryString(ss);
 			k += binary.substring(binary.length() - 4);
 		}
 		for (int i = 0; i < k.length(); i++) {
 			key[i] = Integer.parseInt(String.valueOf(k.charAt(i)));
-			System.out.print(key[i]);
+		//	System.out.print(key[i]);
 		}
-		System.out.println();
+		//System.out.println();
 	}
 
 	private static void getKeychild() {
@@ -341,8 +341,8 @@ public class DES {
 		}
 	}
 public static void main(String[] args) {
-	byte[] c=DES.encrypt("我是中国人4     dfds fdgdf      df           54545  ", "12dfsd3,.,/");
-	String m=DES.decryptStr(c, "12dfsd3,.,/");
+	byte[] c=DES.encrypt("487965489", "123456");
+	String m=DES.decryptStr(Arrays.copyOfRange(c, 0, 15), "123456");
 	System.out.println(m);
 }
 }

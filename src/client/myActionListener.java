@@ -13,6 +13,7 @@ import java.net.DatagramSocket;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import javax.swing.JFileChooser;
@@ -20,6 +21,7 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JTextArea;
 
+import des.DES;
 import messageTran.MessageTran;
 
 public class myActionListener implements ActionListener{
@@ -31,7 +33,8 @@ public class myActionListener implements ActionListener{
 	JTextArea text;
 	byte cmd;
 	int len;
-	long time;
+	String date;
+	SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
 	byte[] data;
 	byte[] buffer;
 	static int length;
@@ -105,13 +108,13 @@ public class myActionListener implements ActionListener{
 				e1.printStackTrace();
 			}
 			length=(int) file.length();
-			time=new Date().getTime();
-			String message=ClientDemo.user+" "+String.valueOf(time)+" "+file.getName()+" "+file.length()+" "+port;
+			date=df.format(new Date());
+			String message=ClientDemo.user+"#"+date+"#"+file.getName()+"#"+file.length()+"#"+port;
 			MessageTran mes=new MessageTran(cmd,message.getBytes());
 			if(message.getBytes().length>255){
 				JOptionPane.showMessageDialog(p2pthread, "超过字数限制！！");
 			}else{
-				message=ClientDemo.user+" "+String.valueOf(time)+"\n"+"发送文件:"+file.getName()+"  	大小为:"+length+"bytes\n";
+				message=ClientDemo.user+"	"+date+"\n"+"发送文件:"+file.getName()+"  	大小为:"+length+"bytes\n";
 				System.out.println(message);
 				StringBuffer bf=ClientDemo.getMap().get(user_sendfor);
 				if(bf==null){
@@ -156,9 +159,10 @@ public class myActionListener implements ActionListener{
 				e1.printStackTrace();
 			}
 			length=(int) file.length();
-			time=new Date().getTime();
-			String message=ClientDemo.user+" "+String.valueOf(time)+" "+file.getName()+" "+file.length()+" "+port;
-			MessageTran mes=new MessageTran(cmd,message.getBytes());
+			date=df.format(new Date());
+			String key="1234567";
+			String message=ClientDemo.user+"#"+date+"#"+file.getName()+"#"+file.length()+"#"+key+"#"+port;
+			MessageTran mes=new MessageTran(cmd,DES.encrypt(message, ClientDemo.getPasswd()));
 			try {
 				output.write(mes.getDataTran());
 				output.flush();
@@ -167,12 +171,12 @@ public class myActionListener implements ActionListener{
 				e.printStackTrace();
 			}
 			//time=new Date().getTime();
-			message=ClientDemo.user+" "+String.valueOf(time)+"\n"+"发送文件:"+file.getName()+"  	大小为:"+length+"bytes\n";
+			message=ClientDemo.user+"	"+date+"\n"+"发送文件:"+file.getName()+"  	大小为:"+length+"bytes\n";
 			StringBuffer bf=ClientDemo.getMap().get("All Online Users");
 			bf.append(message);
 			ta.setText(bf.toString());
 			//sendFile();
-			new fileServerThread(serverSocket,file).start();
+			new fileServerThread(serverSocket,file,key).start();
 			
 			//new sendFileThread().start();
 		}	
@@ -300,8 +304,8 @@ public class myActionListener implements ActionListener{
 		// TODO Auto-generated method stub
 		cmd=0x42;
 		String message;
-		time=new Date().getTime();
-		message=ClientDemo.user+" "+String.valueOf(time)+"\n"+text.getText()+"\n";
+		date=df.format(new Date());
+		message=ClientDemo.user+"	"+date+"\n"+text.getText()+"\n";
 		if(message.getBytes().length>255){
 			JOptionPane.showMessageDialog(p2pthread, "超过字数限制！！");
 		}else{
@@ -313,6 +317,7 @@ public class myActionListener implements ActionListener{
 			}
 			bf.append(message);
 			ta.setText(bf.toString());
+			text.setText("");
 			MessageTran mes=new MessageTran(cmd,message.getBytes());
 			//data=mes.getDataTran();
 			bufferedarray=mes.getDataTran();
@@ -332,8 +337,10 @@ public class myActionListener implements ActionListener{
 		// TODO Auto-generated method stub
 		cmd=0x31;
 		String message;
-		time=new Date().getTime();
-		message=ClientDemo.user+" "+String.valueOf(time)+"\n"+text.getText()+"\n";
+		//time=new Date().getTime();
+	//	SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
+		date = df.format(new Date());// new Date()为获取当前系统时间，也可使用当前时间戳
+		message=ClientDemo.user+"	"+date+"\n"+text.getText()+"\n";
 		if(message.getBytes().length>255){
 			JOptionPane.showMessageDialog(p2pthread, "超过字数限制！！");
 		}else{
@@ -341,8 +348,10 @@ public class myActionListener implements ActionListener{
 			StringBuffer bf=ClientDemo.getMap().get("All Online Users");
 			bf.append(message);
 			ta.setText(bf.toString());
-			MessageTran mes=new MessageTran(cmd,message.getBytes());
+			text.setText("");
+			//MessageTran mes=new MessageTran(cmd,message.getBytes());
 			//data=mes.getDataTran();
+			MessageTran mes=new MessageTran(cmd,DES.encrypt(message, ClientDemo.getPasswd()));
 			try {
 				output.write(mes.getDataTran());
 				output.flush();
