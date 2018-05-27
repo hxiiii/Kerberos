@@ -80,12 +80,10 @@ public class DES {
 		keychild = new int[16][48];
 	}
 
-	public static byte[] encrypt(String M, String key) {
-		// TODO Auto-generated method stub
+	public static byte[] encrypt(byte[] by,String key){
 		init();
 		getBinaryKey(key);
 		StringBuilder s = new StringBuilder();
-		byte[] by = M.getBytes();
 		int length = by.length / 8 + ((by.length % 8 == 0) ? 0 : 1);
 		byte[] result = new byte[length * 8];
 		for (int n = 0; n < length; n++) {
@@ -121,9 +119,14 @@ public class DES {
 		}
 		return result;
 	}
-
-	public static String decrypt(byte[] C, String key) {
+	
+	public static byte[] encrypt(String M, String key) {
 		// TODO Auto-generated method stub
+		byte[] by = M.getBytes();
+		return encrypt(by,key);
+	}
+
+	public static byte[] decrypt(byte[] C,String key){
 		init();
 		getBinaryKey(key);
 		StringBuilder s = new StringBuilder();
@@ -160,6 +163,12 @@ public class DES {
 				by[n * 8 + i] = t[i];
 			}
 		}
+		return by;
+	}
+	
+	public static String decryptStr(byte[] C, String key) {
+		// TODO Auto-generated method stub
+		byte[] by=decrypt(C,key);
 		return new String(by);
 	}
 
@@ -333,7 +342,7 @@ public class DES {
 	}
 public static void main(String[] args) {
 	byte[] c=DES.encrypt("我是中国人4     dfds fdgdf      df           54545  ", "12dfsd3,.,/");
-	String m=DES.decrypt(c, "12dfsd3,.,/");
+	String m=DES.decryptStr(c, "12dfsd3,.,/");
 	System.out.println(m);
 }
 }
