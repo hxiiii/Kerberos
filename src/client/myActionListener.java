@@ -14,6 +14,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 
 import javax.swing.JFileChooser;
@@ -71,7 +72,6 @@ public class myActionListener implements ActionListener{
 			return;
 		}
 	///	
-		
 		if(cmd.equals("发送")){
 			if(text.getText().equals("")){
 				//JOptionPane.s
@@ -81,6 +81,10 @@ public class myActionListener implements ActionListener{
 				if(user_sendfor.equals("All Online Users")){
 					sendAllMessage();
 				}else{
+					if(!p2pthread.isConp2p){
+						JOptionPane.showMessageDialog(p2pthread, "认证失败！！");
+						return;
+					}
 					sendUserMessage();
 				}
 			}
@@ -89,6 +93,10 @@ public class myActionListener implements ActionListener{
 			if(user_sendfor.equals("All Online Users")){
 				sendAllfile();
 			}else{
+				if(!p2pthread.isConp2p){
+					JOptionPane.showMessageDialog(p2pthread, "认证失败！！");
+					return;
+				}
 				sendUserfile();
 			}
 		}
@@ -110,10 +118,10 @@ public class myActionListener implements ActionListener{
 			length=(int) file.length();
 			date=df.format(new Date());
 			String message=ClientDemo.user+"#"+date+"#"+file.getName()+"#"+file.length()+"#"+port;
-			MessageTran mes=new MessageTran(cmd,message.getBytes());
-			if(message.getBytes().length>255){
+			if(message.getBytes().length>248){
 				JOptionPane.showMessageDialog(p2pthread, "超过字数限制！！");
 			}else{
+				MessageTran mes=new MessageTran(cmd,new DES().encrypt(message, p2pthread.key));
 				message=ClientDemo.user+"	"+date+"\n"+"发送文件:"+file.getName()+"  	大小为:"+length+"bytes\n";
 				System.out.println(message);
 				StringBuffer bf=ClientDemo.getMap().get(user_sendfor);
@@ -162,7 +170,7 @@ public class myActionListener implements ActionListener{
 			date=df.format(new Date());
 			String key="1234567";
 			String message=ClientDemo.user+"#"+date+"#"+file.getName()+"#"+file.length()+"#"+key+"#"+port;
-			MessageTran mes=new MessageTran(cmd,DES.encrypt(message, ClientDemo.getPasswd()));
+			MessageTran mes=new MessageTran(cmd,new DES().encrypt(message, ClientDemo.getPasswd()));
 			try {
 				output.write(mes.getDataTran());
 				output.flush();
@@ -203,33 +211,42 @@ public class myActionListener implements ActionListener{
 				Socket socket = server.accept();
 				System.out.println("服务已连接");
 				DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+				/*
+				 * int readsize = 0; // for(int i=0;i<block;i++) while (true) {
+				 * readsize = fis.read(buffer, 0, buffer.length); if (readsize
+				 * == -1) break; out.write(buffer, 0, readsize);
+				 * System.out.println(readsize); out.flush(); }
+				 */
+				byte[] content;
 				int readsize = 0;
-				// for(int i=0;i<block;i++)
 				while (true) {
-					readsize = fis.read(buffer, 0, buffer.length);
-					if (readsize == -1)
-						break;
-					out.write(buffer, 0, readsize);
-					System.out.println(readsize);
-					out.flush();
+					try {
+						readsize = fis.read(buffer, 0, buffer.length);
+						System.out.println(readsize);
+						if (readsize == -1)
+							break;
+						content = new DES().encrypt(Arrays.copyOfRange(buffer, 0, readsize), p2pthread.key);
+						out.write(content, 0, content.length);
+						// System.out.println(new String(new DES().encrypt(content,
+						// key)));
+						out.flush();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 				}
 				if (socket != null) {
 					socket.close();
+				}
+				if(fis!=null){
+					fis.close();
 				}
 			} catch (IOException e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			}
-
-			try {
-				fis.close();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
 		}
 	}
-	
 	
 /*	private void sendFile() {
 		// TODO Auto-generated method stub
@@ -285,16 +302,6 @@ public class myActionListener implements ActionListener{
 			file = fc.getSelectedFile();
 			System.out.println(fc.getName(file));
 			System.out.println(file.getAbsolutePath()+file.getName()+file.length());
-		/*	try {
-				fis=new FileInputStream(file);
-				System.out.println(fis.available());
-			} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}*/
 			return true;
 		}
 		return false;
@@ -306,7 +313,7 @@ public class myActionListener implements ActionListener{
 		String message;
 		date=df.format(new Date());
 		message=ClientDemo.user+"	"+date+"\n"+text.getText()+"\n";
-		if(message.getBytes().length>255){
+		if(message.getBytes().length>248){
 			JOptionPane.showMessageDialog(p2pthread, "超过字数限制！！");
 		}else{
 			System.out.println(message);
@@ -318,7 +325,7 @@ public class myActionListener implements ActionListener{
 			bf.append(message);
 			ta.setText(bf.toString());
 			text.setText("");
-			MessageTran mes=new MessageTran(cmd,message.getBytes());
+			MessageTran mes=new MessageTran(cmd,new DES().encrypt(message, p2pthread.key));
 			//data=mes.getDataTran();
 			bufferedarray=mes.getDataTran();
 			System.out.println(bufferedarray.length);
@@ -341,7 +348,7 @@ public class myActionListener implements ActionListener{
 	//	SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
 		date = df.format(new Date());// new Date()为获取当前系统时间，也可使用当前时间戳
 		message=ClientDemo.user+"	"+date+"\n"+text.getText()+"\n";
-		if(message.getBytes().length>255){
+		if(message.getBytes().length>248){
 			JOptionPane.showMessageDialog(p2pthread, "超过字数限制！！");
 		}else{
 			System.out.println(message);
@@ -351,7 +358,7 @@ public class myActionListener implements ActionListener{
 			text.setText("");
 			//MessageTran mes=new MessageTran(cmd,message.getBytes());
 			//data=mes.getDataTran();
-			MessageTran mes=new MessageTran(cmd,DES.encrypt(message, ClientDemo.getPasswd()));
+			MessageTran mes=new MessageTran(cmd,new DES().encrypt(message, ClientDemo.getPasswd()));
 			try {
 				output.write(mes.getDataTran());
 				output.flush();

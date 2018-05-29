@@ -86,44 +86,46 @@ public class fileServerThread extends Thread{
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-				byte[] content;
-				int readsize=0;
-					while(true){
+			byte[] content;
+			int readsize = 0;
+			while (true) {
+				try {
+					readsize = fis.read(buffer, 0, buffer.length);
+					System.out.println(readsize);
+					if (readsize == -1)
+						break;
+					for (int i = 0; i < filethreads.size(); i++) {
+
 						try {
-							readsize = fis.read(buffer, 0, buffer.length);
-						System.out.println(readsize);
-						if(readsize==-1)break;
-						for (int i = 0; i < filethreads.size(); i++) {
-							
-								try {
-									//content=Arrays.copyOfRange(buffer, 0, readsize);
-									content=DES.encrypt(Arrays.copyOfRange(buffer, 0, readsize), key);
-									filethreads.get(i).getOutputStream().write(content, 0,content.length);
-									//System.out.println(new String(DES.encrypt(content, key)));
-									filethreads.get(i).getOutputStream().flush();
-								} catch (IOException e) {
-									// TODO Auto-generated catch block
-									e.printStackTrace();
-								}
-							
-						}
+							// content=Arrays.copyOfRange(buffer, 0, readsize);
+							content = new DES().encrypt(Arrays.copyOfRange(buffer, 0, readsize), key);
+							filethreads.get(i).getOutputStream().write(content, 0, content.length);
+							// System.out.println(new
+							// String(DES.encrypt(content, key)));
+							filethreads.get(i).getOutputStream().flush();
 						} catch (IOException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
 						}
+
 					}
-					
-						try {
-							if(socket!=null){
-							socket.close();
-							}
-							if(fis!=null){
-							fis.close();
-							}
-						} catch (IOException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+
+			try {
+				if (socket != null) {
+					socket.close();
+				}
+				if (fis != null) {
+					fis.close();
+				}
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 				 done=true;
 			}
 		

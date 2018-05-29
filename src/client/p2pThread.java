@@ -5,12 +5,17 @@ import java.awt.Dimension;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.DataOutputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.math.BigInteger;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -23,6 +28,10 @@ import javax.swing.JTextField;
 
 import des.DES;
 import messageTran.MessageTran;
+import rsa.KEY;
+import rsa.PrivateKey;
+import rsa.PublicKey;
+import rsa.RSAUtil;
 
 public class p2pThread extends JFrame implements Runnable{
 	JTextArea ta;
@@ -36,10 +45,11 @@ public class p2pThread extends JFrame implements Runnable{
 	DataOutputStream output;
 	DatagramSocket socket = null;
 	DatagramPacket packet=null;
-	int length=1024;
-	byte[] bufferedarray=new byte[length];
+	//int length=1024;
+	byte[] bufferedarray;
 	//String user;
 	String user_sendfor;
+	String key=null;
 	myActionListener listener;
 	boolean isConp2p=false;
 	public p2pThread(){}
@@ -143,23 +153,95 @@ public class p2pThread extends JFrame implements Runnable{
 		    sendp2pRequest();//请求p2p连接
 		    if(!authentication()){//身份认证
 		    	//认证失败
+		    	//this.dispose();
+		    	//closep2pCon();
+		    	isConp2p=false;
 		    }
 		}
 	}
 	
 	private boolean authentication() {
 		// TODO Auto-generated method stub
+		boolean flag = false;
+		bufferedarray=new byte[1024];
 		try {
 			packet=new DatagramPacket(bufferedarray,bufferedarray.length);
 			socket.receive(packet);
 			byte[] data=Arrays.copyOfRange(packet.getData(), 2, packet.getLength());
 			System.out.println(new String(data));
 			//RSA认证
+			ObjectInputStream ois=new ObjectInputStream(new FileInputStream(user_sendfor+"_PublicKey.dat"));
+			KEY key=(PublicKey)ois.readObject();
+			flag=RSAUtil.verify(user_sendfor, new BigInteger(data), key);
+			flag=sendACK(flag);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}	
+		System.out.println(flag);
+		return flag;
+	}
+	
+	private Boolean sendACK(boolean flag) {
+		// TODO Auto-generated method stub
+		if(flag==true){
+			try {
+	            // 获得一个指定编码的信息摘要算法
+	            MessageDigest md = MessageDigest.getInstance("MD5");
+	            // 获得数据的数据指纹
+	            byte[] digest = md.digest(ClientDemo.user.getBytes());
+	            ObjectInputStream ois;
+	            BigInteger m ;
+	    		try {
+	    			ois = new ObjectInputStream(new FileInputStream(ClientDemo.user+"_PrivateKey.dat"));
+	    			KEY key = (PrivateKey) ois.readObject();
+	    			ois.close();
+	    			m= RSAUtil.encrypt(key, digest);
+	    			DatagramPacket ackPacket=new DatagramPacket(m.toByteArray(),m.toByteArray().length,packet.getAddress(),packet.getPort());
+	    			socket.send(ackPacket);
+	    		} catch (IOException | ClassNotFoundException e) {
+	    			// TODO Auto-generated catch block
+	    			e.printStackTrace();
+	    		}
+	        } catch (NoSuchAlgorithmException e1) {
+	            e1.printStackTrace();
+	        }
+			return receiveACK();
+		}else{
+			String message="NOTACK";
+			DatagramPacket ackPacket=new DatagramPacket(message.getBytes(),message.getBytes().length,packet.getAddress(),packet.getPort());
+			try {
+				socket.send(ackPacket);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			return false;
+		}
+	}
+	
+	private Boolean receiveACK() {
+		// TODO Auto-generated method stub
+		byte[] buffer=new byte[1024];
+		DatagramPacket ackPacket=new DatagramPacket(buffer,buffer.length);
+		try {
+			socket.receive(ackPacket);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		return true;
+		System.out.println(new String(ackPacket.getData()));
+		if(new String(Arrays.copyOfRange(ackPacket.getData(), 0, ackPacket.getLength())).equals("ACK")){
+			return true;
+		}else{
+			return false;
+		}
 	}
 	
 	private void sendp2pRequest() {
@@ -169,10 +251,9 @@ public class p2pThread extends JFrame implements Runnable{
 			String ip=InetAddress.getLocalHost().getHostAddress();
 			System.out.println("ip:"+ip);
 			//socket.getInetAddress().getHostAddress()
-			String message=user_sendfor+" "+socket.getLocalPort();
-		//	byte[] data=message.getBytes();
-		//	MessageTran mes=new MessageTran(cmd,data);
-			MessageTran mes=new MessageTran(cmd,DES.encrypt(message,ClientDemo.getPasswd()));
+			key="abcdefg";
+			String message=user_sendfor+" "+socket.getLocalPort()+" "+key;
+			MessageTran mes=new MessageTran(cmd,new DES().encrypt(message,ClientDemo.getPasswd()));
 			try {
 				output.write(mes.getDataTran());
 				output.flush();

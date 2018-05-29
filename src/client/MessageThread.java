@@ -75,7 +75,7 @@ public class MessageThread extends Thread {
 			}else if(cmd==0x23){
 				//接收群发消息
 				data=Arrays.copyOfRange(buffer, 2, len);
-				String message=new String(DES.decrypt(data, ClientDemo.getPasswd()));
+				String message=new String(new DES().decrypt(data, ClientDemo.getPasswd()));
 				System.out.println("群發消息"+message);
 				StringBuffer bf=ClientDemo.getMap().get("All Online Users");
 				bf.append(message);
@@ -88,7 +88,7 @@ public class MessageThread extends Thread {
 			}else if(cmd==0x24){
 				//群发文件
 				data=Arrays.copyOfRange(buffer, 2, len);
-				System.out.println(new String(DES.decrypt(data, ClientDemo.getPasswd())));
+				System.out.println(new String(new DES().decrypt(data, ClientDemo.getPasswd())));
 			//	receiveFile();
 				///
 				new receiveFileThread().start();
@@ -97,7 +97,7 @@ public class MessageThread extends Thread {
 			}else if(cmd==0x25){
 				//p2p连接
 				data=Arrays.copyOfRange(buffer, 2, len);
-				System.out.println("p2p连接,新线程开启"+new String(DES.decrypt(data, ClientDemo.getPasswd())));
+				System.out.println("p2p连接,新线程开启"+new String(new DES().decrypt(data, ClientDemo.getPasswd())));
 				new Thread(new p2pMessageThread(data)).start();
 				//新线程
 			}	
@@ -106,7 +106,7 @@ public class MessageThread extends Thread {
 	
 	class receiveFileThread extends Thread{
 		public void run(){
-			String[] message = new String(DES.decrypt(data, ClientDemo.getPasswd())).trim().split("#");
+			String[] message = new String(new DES().decrypt(data, ClientDemo.getPasswd())).trim().split("#");
 			String key=message[4];
 			File file = new File(path + message[2]);
 			FileOutputStream fos = null;
@@ -117,7 +117,7 @@ public class MessageThread extends Thread {
 				e1.printStackTrace();
 			}
 			int length = Integer.parseInt(message[3]);
-			String m=message[0]+"	"+message[1]+"\n"+"发送文件:"+message[2]+"	大小为:"+length+"bytes\n";
+			String m=message[0]+"	"+message[1]+"\n"+"发送文件:"+message[2]+"		大小为:"+length+"bytes\n";
 			StringBuffer bf=ClientDemo.getMap().get("All Online Users");
 			bf.append(m);
 			ArrayList<p2pThread> p2pthreads=ClientDemo.getp2pThreads();
@@ -136,7 +136,8 @@ public class MessageThread extends Thread {
 					byte[] buffer=new byte[1024];
 					System.out.println("socket");
 					int readsize=0;
-					byte[] content;
+					byte[] content = null;
+					byte[] temp;
 					ByteArrayOutputStream out = new ByteArrayOutputStream();
 					while(count<length){
 						try {
@@ -145,12 +146,26 @@ public class MessageThread extends Thread {
 							System.out.println(readsize+"總長:"+count);
 							out.write(buffer,0,readsize);
 							System.out.println(out.size());
-							if(out.size()==1024){
-								content=DES.decrypt(out.toByteArray(), key);
-								out.reset();
+							if(out.size()>=1024){
+							temp = out.toByteArray();
+
+							content = new DES().decrypt(Arrays.copyOfRange(out.toByteArray(), 0, 1024), key);
+							out.reset();
+
+							if (temp.length > 1024) {
+								out.write(Arrays.copyOfRange(temp, 1024, temp.length));
 							}
-							else {
-								content=DES.decrypt(out.toByteArray(), key);
+							fos.write(content, 0, content.length);
+							fos.flush();
+							}
+							if(count>=length){
+								content=new DES().decrypt(out.toByteArray(), key);
+								content=Arrays.copyOfRange(content, 0, out.size()-(count-length));
+								fos.write(content, 0, content.length);
+								fos.flush();
+							}
+					/*		else {
+								content=new DES().decrypt(out.toByteArray(), key);
 								if(count>length){
 									content=Arrays.copyOfRange(content, 0, out.size()-(count-length));
 								}	
@@ -160,11 +175,9 @@ public class MessageThread extends Thread {
 								content=Arrays.copyOfRange(buffer, 0, readsize-(count-length));
 							}
 							else{
-								content=DES.decrypt(content, key);
+								content=new DES().decrypt(content, key);
 							}
 							System.out.println(new String(content));(*/
-							fos.write(content, 0, content.length);
-							fos.flush();
 						} catch (IOException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();

@@ -38,7 +38,7 @@ public class ClientDemo extends JFrame {//socket
 	Socket socket=null;
 	DataInputStream input=null;
 	DataOutputStream output=null;
-	static String user="hxii";
+	static String user="hxiiii";
 	static String passwd="123456";
 	static ArrayList<p2pThread> p2pthreads=new ArrayList<p2pThread>();
 	static HashMap<String,StringBuffer> map=new HashMap<String,StringBuffer>();
@@ -132,7 +132,7 @@ public class ClientDemo extends JFrame {//socket
 		int len;
 		byte[] buffer=new byte[1024];
 		//MessageTran message=new MessageTran(cmd,user.getBytes());
-		MessageTran message=new MessageTran(cmd,DES.encrypt(user, passwd));
+		MessageTran message=new MessageTran(cmd,new DES().encrypt(user, passwd));
 		try {
 			output.write(message.getDataTran());
 			output.flush();
