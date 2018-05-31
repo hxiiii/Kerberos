@@ -12,9 +12,9 @@ import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 
 public class ClientDemo extends JFrame {
-	JList list;
-	DefaultListModel listModel;
-	JScrollPane scrollPane;
+	public JList list;
+	public DefaultListModel listModel;
+	public JScrollPane scrollPane;
 	public ClientDemo(){
 		listModel=new DefaultListModel();
 		listModel.addElement("All Online Users");

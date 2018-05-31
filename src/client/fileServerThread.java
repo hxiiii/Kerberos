@@ -59,7 +59,6 @@ public class fileServerThread extends Thread{
 			Socket socket;
 			int num;
 			DataOutputStream output=null;
-			byte[] buffer=new byte[1024];
 			public fileRunnable(){}
 			public fileRunnable(Socket socket, int i){
 				this.socket=socket;
@@ -74,7 +73,8 @@ public class fileServerThread extends Thread{
 			@Override
 			public void run() {
 				System.out.println(num);
-				if(num<ClientDemo.getMap().size()-1)return;
+				if(num<Client.getMap().size()-1)return;
+				byte[] buffer=new byte[1024];
 				FileInputStream fis = null;
 				try {
 					fis=new FileInputStream(file);
@@ -100,12 +100,11 @@ public class fileServerThread extends Thread{
 							// content=Arrays.copyOfRange(buffer, 0, readsize);
 							content = new DES().encrypt(Arrays.copyOfRange(buffer, 0, readsize), key);
 							filethreads.get(i).getOutputStream().write(content, 0, content.length);
-							// System.out.println(new
-							// String(DES.encrypt(content, key)));
 							filethreads.get(i).getOutputStream().flush();
 						} catch (IOException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
+							continue;
 						}
 
 					}
@@ -128,34 +127,6 @@ public class fileServerThread extends Thread{
 			}
 				 done=true;
 			}
-		
-			/*	while(true){
-					try {
-						len = input.read(buffer);
-						if(len==-1)break;
-						count+=len;
-						System.out.println(len+"總長:"+count);	
-						for (int i = 0; i < threads.size(); i++) {
-							if (threads.get(i)!=this) {
-								try {
-									threads.get(i).getOutputStream().write(buffer, 0, len);
-									threads.get(i).getOutputStream().flush();
-								} catch (IOException e) {
-									// TODO Auto-generated catch block
-									e.printStackTrace();
-								}
-							}
-						}
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-						System.out.println("客户端异常退出！！");
-						break;
-					}
-				}
-				
-			
-		}*/
 			private DataOutputStream getOutputStream() {
 				// TODO Auto-generated method stub
 				return output;

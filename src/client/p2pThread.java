@@ -26,6 +26,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
+import Demo.MessageDemo;
 import des.DES;
 import messageTran.MessageTran;
 import rsa.KEY;
@@ -33,24 +34,13 @@ import rsa.PrivateKey;
 import rsa.PublicKey;
 import rsa.RSAUtil;
 
-public class p2pThread extends JFrame implements Runnable{
-	JTextArea ta;
-	JPanel southPanel;
-	JPanel sendPanel;
-	JScrollPane scroll;
-	JButton button_message;
-	JButton button_file;
-	//JTextField text;
-	JTextArea text;
+public class p2pThread extends Thread{
+	MessageDemo demo;
 	DataOutputStream output;
 	DatagramSocket socket = null;
 	DatagramPacket packet=null;
-	//int length=1024;
-	byte[] bufferedarray;
-	//String user;
 	String user_sendfor;
 	String key=null;
-	myActionListener listener;
 	boolean isConp2p=false;
 	public p2pThread(){}
 	public p2pThread(DataOutputStream output,String user_sendfor){
@@ -61,42 +51,15 @@ public class p2pThread extends JFrame implements Runnable{
 	
 	
 	private void init() {
-		// TODO Auto-generated method stub
-		ta=new JTextArea();
-		ta.setEditable(false);
-		ta.setLineWrap(true);
-		scroll=new JScrollPane(ta);
-		southPanel=new JPanel();
-		sendPanel=new JPanel();
-		southPanel.setPreferredSize(new Dimension(0,55));
-		southPanel.setLayout(new BorderLayout());
-		sendPanel.setLayout(new BorderLayout());
-		//listener=new myActionListener(output,user_sendfor,text);
-		button_message=new JButton("发送");
-		button_file=new JButton("选择文件");
-		text=new JTextArea();
-		text.setLineWrap(true);
-		sendPanel.add(button_message, BorderLayout.NORTH);
-		sendPanel.add(button_file, BorderLayout.SOUTH);
-		southPanel.add(text, BorderLayout.CENTER);
-		southPanel.add(sendPanel, BorderLayout.EAST);
-		add(scroll,BorderLayout.CENTER);
-		add(southPanel,BorderLayout.SOUTH);
-		setTitle(user_sendfor);
-		pack();
-		setSize(500,500);
-		//setResizable(false);
-		setLocationRelativeTo(null);
-		setVisible(true);
-		//setDefaultCloseOperation(3);
-		addWindowListener(new WindowAdapter() {
+		demo=new MessageDemo(user_sendfor);
+		demo.addWindowListener(new WindowAdapter() {
 			public void windowClosing(WindowEvent e) {	
 				//关闭线程
 				if(isConp2p){
 					closep2pCon();
 				}
 				removep2pThread();
-				return;
+				demo.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 			}
 		});
 	}
@@ -105,9 +68,9 @@ public class p2pThread extends JFrame implements Runnable{
 		// TODO Auto-generated method stub
 		byte cmd=0x40;
 		MessageTran mes=new MessageTran(cmd);
-		bufferedarray=mes.getDataTran();
+		byte[] buffer=mes.getDataTran();
 		//System.out.println(bufferedarray.length);
-		DatagramPacket p=new DatagramPacket(bufferedarray,bufferedarray.length,packet.getAddress(),packet.getPort());
+		DatagramPacket p=new DatagramPacket(buffer,buffer.length,packet.getAddress(),packet.getPort());
 		try {
 			socket.send(p);
 		} catch (IOException e) {
@@ -118,7 +81,7 @@ public class p2pThread extends JFrame implements Runnable{
 	
 	protected void removep2pThread() {
 		// TODO Auto-generated method stub
-		ArrayList<p2pThread> p2pthreads=ClientDemo.getp2pThreads();
+		ArrayList<p2pThread> p2pthreads=Client.getp2pThreads();
 		for(int i=0;i<p2pthreads.size();i++){
 			if(p2pthreads.get(i)==this){
 				p2pthreads.remove(i);
@@ -129,20 +92,16 @@ public class p2pThread extends JFrame implements Runnable{
 	
 	public void run(){
 		System.out.println("对话开始"+user_sendfor);
-		listener=new myActionListener(this);
-		button_message.addActionListener(listener);
-		button_file.addActionListener(listener);
+		myActionListener listener=new myActionListener(this);
+		demo.button_message.addActionListener(listener);
+		demo.button_file.addActionListener(listener);
 		if(user_sendfor.equals("All Online Users")){
-			StringBuffer bf=ClientDemo.getMap().get("All Online Users");
-			ta.setText(bf.toString());
-		//listener=new myActionListener(output,user_sendfor,text);
-		/*	listener=new myActionListener(this);
-			button_message.addActionListener(listener);
-			button_file.addActionListener(listener);*/
+			StringBuffer bf=Client.getMap().get("All Online Users");
+			demo.ta.setText(bf.toString());
 		}else{
 			isConp2p=true;
-			StringBuffer bf=ClientDemo.getMap().get(user_sendfor);
-			ta.setText(bf.toString());
+			StringBuffer bf=Client.getMap().get(user_sendfor);
+			demo.ta.setText(bf.toString());
 			try {
 				socket = getRandomPort();
 			} catch (SocketException e) {
@@ -163,7 +122,7 @@ public class p2pThread extends JFrame implements Runnable{
 	private boolean authentication() {
 		// TODO Auto-generated method stub
 		boolean flag = false;
-		bufferedarray=new byte[1024];
+		byte[] bufferedarray=new byte[1024];
 		try {
 			packet=new DatagramPacket(bufferedarray,bufferedarray.length);
 			socket.receive(packet);
@@ -195,14 +154,12 @@ public class p2pThread extends JFrame implements Runnable{
 	            // 获得一个指定编码的信息摘要算法
 	            MessageDigest md = MessageDigest.getInstance("MD5");
 	            // 获得数据的数据指纹
-	            byte[] digest = md.digest(ClientDemo.user.getBytes());
-	            ObjectInputStream ois;
-	            BigInteger m ;
+	            byte[] digest = md.digest(Client.user.getBytes());
 	    		try {
-	    			ois = new ObjectInputStream(new FileInputStream(ClientDemo.user+"_PrivateKey.dat"));
+	    			ObjectInputStream ois = new ObjectInputStream(new FileInputStream(Client.user+"_PrivateKey.dat"));
 	    			KEY key = (PrivateKey) ois.readObject();
 	    			ois.close();
-	    			m= RSAUtil.encrypt(key, digest);
+	    			BigInteger m= RSAUtil.encrypt(key, digest);
 	    			DatagramPacket ackPacket=new DatagramPacket(m.toByteArray(),m.toByteArray().length,packet.getAddress(),packet.getPort());
 	    			socket.send(ackPacket);
 	    		} catch (IOException | ClassNotFoundException e) {
@@ -213,7 +170,8 @@ public class p2pThread extends JFrame implements Runnable{
 	            e1.printStackTrace();
 	        }
 			return receiveACK();
-		}else{
+		}
+		else{
 			String message="NOTACK";
 			DatagramPacket ackPacket=new DatagramPacket(message.getBytes(),message.getBytes().length,packet.getAddress(),packet.getPort());
 			try {
@@ -247,21 +205,13 @@ public class p2pThread extends JFrame implements Runnable{
 	private void sendp2pRequest() {
 		// TODO Auto-generated method stub
 		byte cmd=0x33;
+		key="abcdefg";
+		String message=user_sendfor+" "+socket.getLocalPort()+" "+key;
+		MessageTran mes=new MessageTran(cmd,new DES().encrypt(message,Client.getPasswd()));
 		try {
-			String ip=InetAddress.getLocalHost().getHostAddress();
-			System.out.println("ip:"+ip);
-			//socket.getInetAddress().getHostAddress()
-			key="abcdefg";
-			String message=user_sendfor+" "+socket.getLocalPort()+" "+key;
-			MessageTran mes=new MessageTran(cmd,new DES().encrypt(message,ClientDemo.getPasswd()));
-			try {
-				output.write(mes.getDataTran());
-				output.flush();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		} catch (UnknownHostException e) {
+			output.write(mes.getDataTran());
+			output.flush();
+		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
